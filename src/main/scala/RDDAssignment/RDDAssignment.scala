@@ -32,7 +32,7 @@ object RDDAssignment {
    * @param commits RDD containing commit data.
    * @return Long indicating the number of commits in the given RDD.
    */
-  def assignment_1(commits: RDD[Commit]): Long = ???
+  def assignment_1(commits: RDD[Commit]): Long = commits.count()
 
   /**
    *                                     Description
@@ -49,7 +49,15 @@ object RDDAssignment {
    * @param commits RDD containing commit data.
    * @return RDD containing tuples indicating the email domain (extension) and number of occurrences.
    */
-  def assignment_2(commits: RDD[Commit]): RDD[(String, Long)] = ???
+  def assignment_2(commits: RDD[Commit]): RDD[(String, Long)] = {
+    commits
+      .map(c => c.commit.author.email)
+      .map(email => (email.split("@").last, 1L))
+      .reduceByKey(_ + _)
+      //.sortBy(x => x._2, ascending = false)
+  }
+
+
 
   /**
    *                                        Description
@@ -62,7 +70,7 @@ object RDDAssignment {
    *                                           Hints
    *
    * Files in a directory must have unique names but can have the same name in different directories.
-   * During refactoring, files can be moved between directories directories, resulting in the same file
+   * During refactoring, files can be moved between directories, resulting in the same file
    * having a different absolute path from a point in time. However, a directory can have more than
    * one file with the same name (but in different directories), so just taking the file name might be too lenient.
    * To simplify things, you may assume that an absolute path is sufficient to identify a file. To further simplify this,
@@ -88,7 +96,13 @@ object RDDAssignment {
    * @param commits RDD containing commit data.
    * @return RDD containing the rank number, commit author names and number of comments of author in order.
    */
-  def assignment_4(commits: RDD[Commit]): RDD[(Long, String, Long)] = ???
+  def assignment_4(commits: RDD[Commit]): RDD[(Long, String, Long)] = {
+    commits.map(c => (c.commit.author.name, c.commit.comment_count))
+      .reduceByKey(_ + _)
+      .sortBy(x => x._2, ascending = false)
+      .zipWithIndex()
+      .map { case ((k,v),i ) => (i,k,v)}
+  }
 
   /**
    *                                        Description
@@ -114,7 +128,20 @@ object RDDAssignment {
    * @param fileExtensions List of String containing file extensions
    * @return RDD containing file extension and an aggregation of the committers' Stats.
    */
-  def assignment_5(commits: RDD[Commit], fileExtensions: List[String]): RDD[(String, Stats)] = ???
+  def assignment_5(commits: RDD[Commit], fileExtensions: List[String]): RDD[(String, Stats)] = {
+    commits.flatMap(c => c.files)
+      .map(x => {
+        val extensions = x.filename.flatMap(_.split("\\.").lastOption)
+        (extensions.get,Stats(x.changes, x.additions, x.deletions))
+      })
+      .filter { case (extension, _) => fileExtensions.contains(extension)}
+      .reduceByKey((s1, s2) => Stats(
+        total = s1.total + s2.total,
+        additions = s1.additions + s2.additions,
+        deletions = s1.deletions + s2.deletions
+      ))
+
+  }
 
   /**
    *                                        Description
@@ -177,7 +204,19 @@ object RDDAssignment {
    * @return RDD of tuple containing committer name, list of repositories and
    * total number of commits committed across all repositories.
    */
-  def assignment_8(commits: RDD[Commit]): RDD[(String, Iterable[String], Long)] = ???
+  def assignment_8(commits: RDD[Commit]): RDD[(String, Iterable[String], Long)] = {
+    commits
+      .map(c =>  (c.commit.committer.name,c.url.split("/")(5),1L))
+      .map{
+        case (key, v1, v2) => (key, (Iterable(v1), v2))
+      }
+      .reduceByKey{
+        case ((list1, sum1), (list2, sum2)) => (list1 ++ list2, sum1 + sum2)
+      }
+      .map{
+        case (key, (v1, v2)) => (key, v1, v2)
+      }
+  }
 
 
   /**
