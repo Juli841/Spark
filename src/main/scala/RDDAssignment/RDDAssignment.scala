@@ -32,7 +32,9 @@ object RDDAssignment {
    * @param commits RDD containing commit data.
    * @return Long indicating the number of commits in the given RDD.
    */
-  def assignment_1(commits: RDD[Commit]): Long = commits.count()
+  def assignment_1(commits: RDD[Commit]): Long = {
+      commits.count()
+  }
 
   /**
    *                                     Description
@@ -78,7 +80,14 @@ object RDDAssignment {
    * @param commits RDD containing commit data.
    * @return A tuple containing the filename and number of changes.
    */
-  def assignment_3(commits: RDD[Commit]): (String, Long) = ???
+  def assignment_3(commits: RDD[Commit]): (String, Long) = {
+    commits.flatMap(t => t.files).map(u => (u.raw_url.getOrElse("unknown"),(1L,u.changes.toLong)))
+      .reduceByKey((a,b)=>(a._1+b._1,a._2+b._2))
+      .reduce((a, b) => if (a._2._1>=b._2._1) a else b)
+      match{
+        case (nume, (_,ch)) => (nume,ch)
+      }
+  }
 
   /**
    *                                        Description
@@ -158,7 +167,19 @@ object RDDAssignment {
    * @param commits RDD containing commit data.
    * @return RDD of Strings representing the author names that have both committed to and own repositories.
    */
-  def assignment_6(commits: RDD[Commit]): RDD[String] = ???
+  def assignment_6(commits: RDD[Commit]): RDD[String] = {
+    val authors: RDD[String] = commits.flatMap(c => c.author.map(_.login))
+      .filter(_.nonEmpty)
+      .distinct()
+    val repo_owners= commits.flatMap( t => t.files)
+  .flatMap(r => r.raw_url.orElse(r.blob_url))
+      .flatMap{lala =>
+      val url_parts=lala.split("/")
+    if(url_parts.length>4) Some(url_parts(4)) else None}
+      .distinct()
+    authors.intersection(repo_owners)
+
+  }
 
 
   /**                                       IMPORTANT NOTE!!!!!!
@@ -233,7 +254,17 @@ object RDDAssignment {
    * @param commits RDD containing commit data.
    * @return RDD containing the repository names, list of tuples of Timestamps and commit author names
    */
-  def assignment_9(commits: RDD[Commit]): RDD[(String, Iterable[(Timestamp, String)])] = ???
+  def assignment_9(commits: RDD[Commit]): RDD[(String, Iterable[(Timestamp, String)])] = {
+    val repoAuth = commits.flatMap{
+      c =>
+        c.url.split("/") match{
+          case details if details.length > 5 =>
+            val repo_name=details(4) + "/" + details(5)
+            Some((repo_name,(c.commit.author.date, c.commit.author.name)))
+          case _ => None
+        }
+    }
+  }
 
 
   /**
