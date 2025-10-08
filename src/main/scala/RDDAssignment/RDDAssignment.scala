@@ -81,12 +81,9 @@ object RDDAssignment {
    * @return A tuple containing the filename and number of changes.
    */
   def assignment_3(commits: RDD[Commit]): (String, Long) = {
-    commits.flatMap(t => t.files).map(u => (u.raw_url.getOrElse("unknown"),(1L,u.changes.toLong)))
-      .reduceByKey((a,b)=>(a._1+b._1,a._2+b._2))
-      .reduce((a, b) => if (a._2._1>=b._2._1) a else b)
-      match{
-        case (nume, (_,ch)) => (nume,ch)
-      }
+    commits.flatMap(t => t.files).map(u => (u.filename.getOrElse("unknown"),u.changes.toLong))
+      .reduceByKey((a,b)=>a+b)
+      .reduce((a,b) =>if(a._2>=b._2) a else b)
   }
 
   /**
@@ -255,15 +252,18 @@ object RDDAssignment {
    * @return RDD containing the repository names, list of tuples of Timestamps and commit author names
    */
   def assignment_9(commits: RDD[Commit]): RDD[(String, Iterable[(Timestamp, String)])] = {
-    val repoAuth = commits.flatMap{
-      c =>
-        c.url.split("/") match{
-          case details if details.length > 5 =>
-            val repo_name=details(4) + "/" + details(5)
-            Some((repo_name,(c.commit.author.date, c.commit.author.name)))
-          case _ => None
-        }
-    }
+    commits.map(c => {
+      val items=c.url.split("/repos/").lift(1)
+      val repo= items.map(t => t.split("/commits")(0)).getOrElse("unwknown")
+      ((repo, c.commit.author.name), c.commit.author.date)
+    })
+      .reduceByKey((a,b)=>if(a.before(b)) a else b)
+      .map{
+        case ((repo,author), date) => (repo, (date, author))
+      }
+      .aggregateByKey((Seq.empty[(Timestamp,String)]))((acc,x) => x+: acc,(a,b)=> a++b)
+      .mapValues(_.toIterable)
+
   }
 
 
