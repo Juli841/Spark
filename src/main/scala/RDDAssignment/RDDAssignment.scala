@@ -322,11 +322,11 @@ object RDDAssignment {
     val vertex_repos = commits.map(r => r.url.split("/")(5)).distinct()
       .map(l => (md5HashString(l).toLong,("repository",l)))
     val vertices=vertex_committers union vertex_repos
-    val edges = commits.map{ u=>
+    val edges = commits.flatMap{ u=>
       val comitter_id=md5HashString(u.commit.committer.name).toLong
       val repo_id = md5HashString(u.url.split("/")(5)).toLong
-      Edge(comitter_id,repo_id,"commited_to")
-      Edge(repo_id, comitter_id,"commited_by")
+     Seq (Edge(comitter_id,repo_id,"commited_to"),
+      Edge(repo_id, comitter_id,"commited_by"))
     }
     Graph(vertices,edges)
   }
