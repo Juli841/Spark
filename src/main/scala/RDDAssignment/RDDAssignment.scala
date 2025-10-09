@@ -89,7 +89,7 @@ object RDDAssignment {
   /**
    *                                        Description
    *
-   * Some users on Github might be interested in their ranking in number of comments.
+   * Some users on GitHub might be interested in their ranking in number of comments.
    * Return a RDD containing tuples of:
    *        - the rank (zero indexed) of a commit author
    *        - commit author's name
@@ -105,7 +105,7 @@ object RDDAssignment {
   def assignment_4(commits: RDD[Commit]): RDD[(Long, String, Long)] = {
     commits.map(c => (c.commit.author.name, c.commit.comment_count))
       .reduceByKey(_ + _)
-      .sortBy(x => x._2, ascending = false)
+      .sortBy(x => (-x._2,x._1))
       .zipWithIndex()
       .map { case ((k,v),i ) => (i,k,v)}
   }
