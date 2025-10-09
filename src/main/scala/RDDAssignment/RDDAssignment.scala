@@ -51,11 +51,17 @@ object RDDAssignment {
    * @param commits RDD containing commit data.
    * @return RDD containing tuples indicating the email domain (extension) and number of occurrences.
    */
-  def assignment_2(commits: RDD[Commit]): RDD[(String, Long)] = {
-    commits.map(u=> (u.commit.author.email.split("@").last,1L))
-      .reduceByKey(_+_)
-  }
-
+    def assignment_2(commits: RDD[Commit]): RDD[(String, Long)] = {
+      commits
+        .flatMap(c => Option(c.commit.author.email))
+        .map(_.trim.toLowerCase)
+        .filter(_.contains("@"))
+        .map(_.split("@").last)
+        .map(_.replaceAll("[^a-z0-9.-]", ""))
+        .filter(d => d.nonEmpty && d.contains("."))
+        .map(domain => (domain, 1L))
+        .reduceByKey(_ + _)
+    }
 
 
   /**
