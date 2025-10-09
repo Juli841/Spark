@@ -342,13 +342,51 @@ object RDDAssignment {
     val vertex_repos = commits.map(r => r.url.split("/")(5)).distinct()
       .map(l => (md5HashString(l).toLong,("repository",l)))
     val vertices=vertex_committers union vertex_repos
-    val edges = commits.flatMap { u=>
-      val committer_id=md5HashString(u.commit.committer.name).toLong
+    val edges = commits.flatMap { u=>val committer_id=md5HashString(u.commit.committer.name).toLong
       val repo_id = md5HashString(u.url.split("/")(5)).toLong
       Seq(Edge(committer_id,repo_id,"commited_to"),
       Edge(repo_id, committer_id,"commited_by"))
     }
     Graph(vertices,edges)
+//    val validCommits = commits.flatMap { c =>
+//      Option(c.commit.committer).map(committer => (committer.name, c.url))
+//    }
+//
+//    val repoNames = validCommits
+//      .map { case (_, url) => url.split("/").lift(5).getOrElse("").toLowerCase }
+//      .filter(_.nonEmpty)
+//      .distinct()
+//
+//    val committerNames = validCommits
+//      .map { case (name, _) => name.toLowerCase }
+//      .filter(_.nonEmpty)
+//      .distinct()
+//
+//    val vertex_committers = committerNames.map(name =>
+//      (md5HashString(name), ("developer", name))
+//    )
+//    val vertex_repos = repoNames.map(r =>
+//      (md5HashString(r), ("repository", r))
+//    )
+//    val vertices = vertex_committers union vertex_repos
+//
+//    val edges = validCommits
+//      .map { case (committer, url) =>
+//        val repo = url.split("/").lift(5).getOrElse("").toLowerCase
+//        (committer.toLowerCase, repo)
+//      }
+//      .filter { case (_, repo) => repo.nonEmpty }
+//      .distinct()
+//      .flatMap { case (committer, repo) =>
+//        val committer_id = md5HashString(committer)
+//        val repo_id = md5HashString(repo)
+//        Seq(
+//          Edge(committer_id, repo_id, "committed_to"),
+//          Edge(repo_id, committer_id, "committed_by")
+//        )
+//      }
+//
+//    Graph(vertices,edges)
   }
 }
 
