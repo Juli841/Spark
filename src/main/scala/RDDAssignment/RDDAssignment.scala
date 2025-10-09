@@ -204,12 +204,14 @@ object RDDAssignment {
    * @return RDD of Tuple type containing a repository name and a double representing the average streak length.
    */
   def assignment_7(commits: RDD[Commit]): RDD[(String, Double)] = {
-   commits.map{u=>
-       (u.url.split("/")(5),(
-         if(u.commit.message!=null&&u.commit.message.trim.toLowerCase.startsWith("revert"))
-           1 else 0, 1
-       ))
-     }
+    commits.map{u=>
+        val repository_name = u.url.split("/")(5)
+        val message=Option(u.commit.message).getOrElse("").trim
+        if (message.toLowerCase.startsWith("revert")) {
+          val streak = "(?i)\\brevert\\b".r.findAllMatchIn(message).length
+          (repository_name, (streak, 1))
+        } else (repository_name, (0, 1))
+        }
       .reduceByKey {case((a, b), (c, d)) => (a+c, b+d)}
       .mapValues(t => t._1.toDouble/t._2)
       .filter(t => t._2>0)
