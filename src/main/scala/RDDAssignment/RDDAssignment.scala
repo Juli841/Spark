@@ -160,22 +160,14 @@ object RDDAssignment {
    *      and own repositories in the given RDD.
    *
    * Note that the repository owner is contained within Github urls.
-   *
-   * @param commits RDD containing commit data.
+   * @param commits RDD containing commit data.2
    * @return RDD of Strings representing the author names that have both committed to and own repositories.
    */
   def assignment_6(commits: RDD[Commit]): RDD[String] = {
-    val authors: RDD[String] = commits.flatMap(c => c.author.map(_.login))
-      .filter(_.nonEmpty)
-      .distinct()
-    val repo_owners= commits.flatMap( t => t.files)
-  .flatMap(r => r.raw_url.orElse(r.blob_url))
-      .flatMap{lala =>
-      val url_parts=lala.split("/")
-    if(url_parts.length>4) Some(url_parts(4)) else None}
-      .distinct()
-    authors.intersection(repo_owners)
-
+    val authors = commits.map(u => u.commit.author.name).distinct()
+    val repo_owners = commits.map(u =>u.url.split("/"))
+      .flatMap(parts => Option(parts(parts.indexWhere(_ == "repos") + 1))).distinct()
+    authors intersection repo_owners
   }
 
 
@@ -208,8 +200,17 @@ object RDDAssignment {
    * @param commits RDD containing commit data.
    * @return RDD of Tuple type containing a repository name and a double representing the average streak length.
    */
-  def assignment_7(commits: RDD[Commit]): RDD[(String, Double)] = ???
-
+  def assignment_7(commits: RDD[Commit]): RDD[(String, Double)] = {
+   commits.map{u=>
+       (u.url.split("/")(5),(
+         if(u.commit.message!=null&&u.commit.message.trim.toLowerCase.startsWith("revert"))
+           1 else 0, 1
+       ))
+     }
+      .reduceByKey {case((a, b), (c, d)) => (a+c, b+d)}
+      .mapValues(t => t._1.toDouble/t._2)
+      .filter(t => t._2>0)
+  }
   /**
    *
    *                                      Description
