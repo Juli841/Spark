@@ -271,15 +271,28 @@ object RDDAssignment {
    * @return RDD containing tuples representing a file name and a list of tuples of committer names and Stats object.
    */
   def assignment_10(commits: RDD[Commit], repository: String): RDD[(String, List[(String, Stats)])] = {
-    commits
-      .filter(c => c.url.split("/")(5).contains(repository))
-      .flatMap(c => c.files.flatMap(f => f.filename.map(name =>
-        (name, (c.commit.committer.name, Stats(f.changes, f.additions, f.deletions)))
-      )))
-      .aggregateByKey(List.empty[(String, Stats)])(
-        (acc, v) => v :: acc,
-        (acc1, acc2) => acc1 ++ acc2
-      )
+    val fileCommitterStats = commits
+      .filter(c => c.url.split("/")(5).equals(repository))
+      .flatMap { c =>
+        val committer = c.commit.committer.name
+        c.files.flatMap { f =>
+          f.filename.map { name =>
+            ((name, committer), Stats(f.changes, f.additions, f.deletions))
+          }
+        }
+      }
+      val sumStats = (a: Stats, b: Stats) =>
+        Stats(a.total + b.total, a.additions + b.additions, a.deletions + b.deletions)
+
+      val aggregated = fileCommitterStats
+        .reduceByKey(sumStats)
+        .map {
+          case ((file, committer), stats) => (file, (committer, stats))
+        }
+
+      aggregated.aggregateByKey(List.empty[(String, Stats)])(
+      (acc, value) => value :: acc,
+      (acc1, acc2) => acc1 ++ acc2)
   }
 
 
@@ -322,11 +335,11 @@ object RDDAssignment {
     val vertex_repos = commits.map(r => r.url.split("/")(5)).distinct()
       .map(l => (md5HashString(l).toLong,("repository",l)))
     val vertices=vertex_committers union vertex_repos
-    val edges = commits.flatMap{ u=>
-      val comitter_id=md5HashString(u.commit.committer.name).toLong
+    val edges = commits.flatMap { u=>
+      val committer_id=md5HashString(u.commit.committer.name).toLong
       val repo_id = md5HashString(u.url.split("/")(5)).toLong
-     Seq (Edge(comitter_id,repo_id,"commited_to"),
-      Edge(repo_id, comitter_id,"commited_by"))
+      Seq(Edge(committer_id,repo_id,"commited_to"),
+      Edge(repo_id, committer_id,"commited_by"))
     }
     Graph(vertices,edges)
   }
