@@ -275,9 +275,10 @@ object RDDAssignment {
    */
   def assignment_10(commits: RDD[Commit], repository: String): RDD[(String, List[(String, Stats)])] = {
     commits
-      .filter(c => repository.contains(c.url.split("/")(5)))
-      .flatMap(c => c.files.map(f => (f,c.commit.committer.name)))
-      .map{ case (f,comName) => (f.filename.get, (comName,Stats(total = f.changes, additions = f.additions, deletions = f.deletions)))}
+      .filter(c => c.url.split("/")(5).contains(repository))
+      .flatMap(c => c.files.flatMap(f => f.filename.map(name =>
+        (name, (c.commit.committer.name, Stats(f.changes, f.additions, f.deletions)))
+      )))
       .aggregateByKey(List.empty[(String, Stats)])(
         (acc, v) => v :: acc,
         (acc1, acc2) => acc1 ++ acc2
