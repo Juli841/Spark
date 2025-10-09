@@ -256,11 +256,12 @@ object RDDAssignment {
    * @return RDD containing the repository names, list of tuples of Timestamps and commit author names
    */
   def assignment_9(commits: RDD[Commit]): RDD[(String, Iterable[(Timestamp, String)])] = {
-   commits.map(u => (u.url.split("/")(5), List((u.commit.author.date,u.commit.author.name))))
-     .reduceByKey(_++_)
-     .mapValues(r =>r.toIterable)
-  }
+    commits.map(u => ((u.url.split("/")(5),u.commit.author.name),u.commit.author.date))
+      .reduceByKey((x,y)=>if(x.before(y)) x else y)
+      .map(t => (t._1._1, Iterable((t._2,t._1._2))))
+        .reduceByKey(_++_)
 
+  }
 
   /**
    *                                             Description
