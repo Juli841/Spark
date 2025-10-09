@@ -69,7 +69,6 @@ class StudentTest extends FunSuite with BeforeAndAfterAll {
     val studentResult: RDD[(Long, String, Long)] = RDDAssignment.assignment_4(commitRDD)
     val expectedSet = Set((0L,"Mateusz Kossakowski",5L))
     assertResult(expectedSet) {
-      System.out.println(studentResult.collect().mkString("Array(", ", ", ")"))
       studentResult.collect().toSet.intersect(expectedSet)
     }
   }
