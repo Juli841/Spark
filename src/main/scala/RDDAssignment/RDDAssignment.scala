@@ -102,7 +102,7 @@ object RDDAssignment {
   def assignment_4(commits: RDD[Commit]): RDD[(Long, String, Long)] = {
     commits.map(c => (c.commit.author.name, c.commit.comment_count))
       .reduceByKey(_ + _)
-      .sortBy(x => (-x._2,x._1))
+      .sortBy(x => (-x._2,x._1.toLowerCase()))
       .zipWithIndex()
       .map { case ((k,v),i ) => (i,k,v)}
   }
