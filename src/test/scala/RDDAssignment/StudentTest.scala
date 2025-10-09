@@ -130,6 +130,67 @@ class StudentTest extends FunSuite with BeforeAndAfterAll {
     }
   }
 
+  test("Assert RDD assignment 11 - Graph structure with debug output") {
+    println("========== Running Assignment 11 Graph Test ==========")
+
+    val graph = RDDAssignment.assignment_11(commitRDD)
+
+    // Collect vertices and edges
+    val vertices = graph.vertices.collect()
+    val edges = graph.edges.collect()
+
+    println(s"Total vertices: ${vertices.length}")
+    println(s"Total edges: ${edges.length}")
+
+    // Display a few sample vertices
+    println("\n--- Sample Vertices (type, name) ---")
+    vertices.take(10).foreach { case (id, (vType, name)) =>
+      println(s"VertexID: $id | Type: $vType | Name: $name")
+    }
+
+    // Display a few sample edges
+    println("\n--- Sample Edges (src -> dst : label) ---")
+    edges.take(10).foreach { e =>
+      println(s"${e.srcId} -> ${e.dstId} : ${e.attr}")
+    }
+
+    // Check for developer and repository vertex types
+    val vertexTypes = vertices.map(_._2._1).toSet
+    println(s"\nVertex Types Present: ${vertexTypes.mkString(", ")}")
+    assert(vertexTypes.contains("developer"), "Missing developer vertex type")
+    assert(vertexTypes.contains("repository"), "Missing repository vertex type")
+
+    // Check for edge labels
+    val edgeLabels = edges.map(_.attr).toSet
+    println(s"Edge Labels Found: ${edgeLabels.mkString(", ")}")
+    assert(edgeLabels.contains("committed_to"), "Missing committed_to edges")
+    assert(edgeLabels.contains("committed_by"), "Missing committed_by edges")
+
+    // Check for bidirectional pairs
+    val committedToEdges = edges.filter(_.attr == "committed_to")
+    val committedByEdges = edges.filter(_.attr == "committed_by")
+
+    val bidirectionalPairs = committedToEdges.count { e =>
+      committedByEdges.exists(rev => rev.srcId == e.dstId && rev.dstId == e.srcId)
+    }
+
+    println(s"Total committed_to edges: ${committedToEdges.length}")
+    println(s"Total committed_by edges: ${committedByEdges.length}")
+    println(s"Bidirectional edge pairs found: $bidirectionalPairs")
+
+    assert(bidirectionalPairs > 0, "Expected at least one bidirectional pair")
+
+    // Check for unique vertex IDs
+    val uniqueVertexCount = vertices.map(_._1).distinct.length
+    println(s"Unique vertex IDs: $uniqueVertexCount")
+    assert(uniqueVertexCount == vertices.length, "Vertex IDs are not unique")
+
+    println("=======================================================\n")
+  }
+
+
+
+
   override def afterAll(): Unit = {
     //    Uncomment the line beneath if you want to inspect the Spark GUI in your browser, the url should be printed
     //    in the console during the start-up of the driver.

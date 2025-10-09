@@ -18,13 +18,13 @@ object RDDAssignment {
 
 
   /**
-   *                                     Description
+   * Description
    *
    * Reductions are often used in data processing in order to gather more useful data out of raw data. In this case
    * we want to know how many commits a given RDD contains.
    *
    *
-   *                                        Hints
+   * Hints
    *
    * You should be able to complete this assignment with using only one function. If in doubt, read the Spark RDD
    * documentation in detail: https://spark.apache.org/docs/2.4.3/api/scala/index.html#org.apache.spark.rdd.RDD
@@ -33,35 +33,33 @@ object RDDAssignment {
    * @return Long indicating the number of commits in the given RDD.
    */
   def assignment_1(commits: RDD[Commit]): Long = {
-      commits.count()
+    commits.count()
   }
 
   /**
-   *                                     Description
+   * Description
    *
    * We want to know what is the most popular email domain.
    * We require a RDD containing tuples of the used
    *        - email domain
    *        - combined with the number of occurrences.
    *
-   *                                       Hints
+   * Hints
    *
    * You should use the email of the author
    *
    * @param commits RDD containing commit data.
    * @return RDD containing tuples indicating the email domain (extension) and number of occurrences.
    */
-    def assignment_2(commits: RDD[Commit]): RDD[(String, Long)] = {
-      commits
-        .flatMap(c => Option(c.commit.author.email))
-        .map(_.trim.toLowerCase)
-        .filter(_.contains("@"))
-        .map(_.split("@").last)
-        .map(_.replaceAll("[^a-z0-9.-]", ""))
-        .filter(d => d.nonEmpty && d.contains("."))
-        .map(domain => (domain, 1L))
-        .reduceByKey(_ + _)
-    }
+  def assignment_2(commits: RDD[Commit]): RDD[(String, Long)] = {
+    commits
+      .flatMap(c => Option(c.commit.author.email))
+      .distinct()
+      .filter(_.contains("@"))
+      .map(_.split("@").last)
+      .map(domain => (domain, 1L))
+      .reduceByKey(_ + _)
+  }
 
 
   /**
@@ -80,13 +78,14 @@ object RDDAssignment {
    * one file with the same name (but in different directories), so just taking the file name might be too lenient.
    * To simplify things, you may assume that an absolute path is sufficient to identify a file. To further simplify this,
    * use absolute filepath as filename.
+   *
    * @param commits RDD containing commit data.
    * @return A tuple containing the filename and number of changes.
    */
   def assignment_3(commits: RDD[Commit]): (String, Long) = {
-    commits.flatMap(t => t.files).map(u => (u.filename.getOrElse("unknown"),u.changes.toLong))
-      .reduceByKey((a,b)=>a+b)
-      .reduce((a,b) =>if(a._2>=b._2) a else b)
+    commits.flatMap(t => t.files).map(u => (u.filename.getOrElse("unknown"), u.changes.toLong))
+      .reduceByKey((a, b) => a + b)
+      .reduce((a, b) => if (a._2 >= b._2) a else b)
   }
 
   /**
@@ -108,9 +107,9 @@ object RDDAssignment {
   def assignment_4(commits: RDD[Commit]): RDD[(Long, String, Long)] = {
     commits.map(c => (c.commit.author.name, c.commit.comment_count))
       .reduceByKey(_ + _)
-      .sortBy(x => (-x._2,x._1.toLowerCase()))
+      .sortBy(x => (-x._2, x._1.toLowerCase()))
       .zipWithIndex()
-      .map { case ((k,v),i ) => (i,k,v)}
+      .map { case ((k, v), i) => (i, k, v) }
   }
 
   /**
@@ -128,12 +127,12 @@ object RDDAssignment {
    *
    * we want you to compose the Stats object for each file with those values.
    *
-   *                                           Hints
+   * Hints
    *
    * The value of "changes" is the sum of additions and deletions, so it is an equivalent of the
    * "total" value in stats.
    *
-   * @param commits RDD containing commit data.
+   * @param commits        RDD containing commit data.
    * @param fileExtensions List of String containing file extensions
    * @return RDD containing file extension and an aggregation of the committers' Stats.
    */
@@ -141,9 +140,9 @@ object RDDAssignment {
     commits.flatMap(c => c.files)
       .map(x => {
         val extensions = x.filename.flatMap(_.split("\\.").lastOption)
-        (extensions.get,Stats(x.changes, x.additions, x.deletions))
+        (extensions.get, Stats(x.changes, x.additions, x.deletions))
       })
-      .filter { case (extension, _) => fileExtensions.contains(extension)}
+      .filter { case (extension, _) => fileExtensions.contains(extension) }
       .reduceByKey((s1, s2) => Stats(
         total = s1.total + s2.total,
         additions = s1.additions + s2.additions,
@@ -168,7 +167,7 @@ object RDDAssignment {
    */
   def assignment_6(commits: RDD[Commit]): RDD[String] = {
     val authors = commits.map(u => u.commit.author.name).distinct()
-    val repo_owners = commits.map(u =>u.url.split("/"))
+    val repo_owners = commits.map(u => u.url.split("/"))
       .flatMap(parts => Option(parts(parts.indexWhere(_ == "repos") + 1))).distinct()
     authors intersection repo_owners
   }
@@ -216,9 +215,10 @@ object RDDAssignment {
       .mapValues(t => t._1.toDouble/t._2)
       .filter(t => t._2>0)
   }
+
   /**
    *
-   *                                      Description
+   * Description
    *
    * We want to know the number of commits that are made by unique committers (represented by the field committer
    * in CommitData) in a given RDD. Besides the number of commits, we also want to know how many different
@@ -226,47 +226,47 @@ object RDDAssignment {
    *
    * @param commits RDD containing commit data.
    * @return RDD of tuple containing committer name, list of repositories and
-   * total number of commits committed across all repositories.
+   *         total number of commits committed across all repositories.
    */
   def assignment_8(commits: RDD[Commit]): RDD[(String, Iterable[String], Long)] = {
     commits
-      .map(c =>  (c.commit.committer.name,c.url.split("/")(5),1L))
-      .map{
+      .map(c => (c.commit.committer.name, c.url.split("/")(5), 1L))
+      .map {
         case (key, v1, v2) => (key, (Iterable(v1), v2))
       }
-      .reduceByKey{
+      .reduceByKey {
         case ((list1, sum1), (list2, sum2)) => (list1 ++ list2, sum1 + sum2)
       }
-      .map{
+      .map {
         case (key, (v1, v2)) => (key, v1, v2)
       }
   }
 
 
   /**
-   *                                       Description
+   * Description
    *
    * Return RDD of tuples containing
    *  - repository names
    *  - list of all commit authors of that repository (commit.author.name), with date of first commit.
    *
    *
-   *                                          Hint
+   * Hint
    * Use commit.author.date
    *
    * @param commits RDD containing commit data.
    * @return RDD containing the repository names, list of tuples of Timestamps and commit author names
    */
   def assignment_9(commits: RDD[Commit]): RDD[(String, Iterable[(Timestamp, String)])] = {
-    commits.map(u => ((u.url.split("/")(5),u.commit.author.name),u.commit.author.date))
-      .reduceByKey((x,y)=>if(x.before(y)) x else y)
-      .map(t => (t._1._1, Iterable((t._2,t._1._2))))
-        .reduceByKey(_++_)
+    commits.map(u => ((u.url.split("/")(5), u.commit.author.name), u.commit.author.date))
+      .reduceByKey((x, y) => if (x.before(y)) x else y)
+      .map(t => (t._1._1, Iterable((t._2, t._1._2))))
+      .reduceByKey(_ ++ _)
 
   }
 
   /**
-   *                                             Description
+   * Description
    *
    * We want to know the committers that worked on a certain file to make an overview of every file in a repository.
    *
@@ -275,7 +275,7 @@ object RDDAssignment {
    *  - set of tuples with name of committers
    *  - Stat object representing the changes made to the file by each committer.
    *
-   * @param commits RDD containing commit data.
+   * @param commits    RDD containing commit data.
    * @param repository String name of repository
    * @return RDD containing tuples representing a file name and a list of tuples of committer names and Stats object.
    */
@@ -290,29 +290,29 @@ object RDDAssignment {
           }
         }
       }
-      val sumStats = (a: Stats, b: Stats) =>
-        Stats(a.total + b.total, a.additions + b.additions, a.deletions + b.deletions)
+    val sumStats = (a: Stats, b: Stats) =>
+      Stats(a.total + b.total, a.additions + b.additions, a.deletions + b.deletions)
 
-      val aggregated = fileCommitterStats
-        .reduceByKey(sumStats)
-        .map {
-          case ((file, committer), stats) => (file, (committer, stats))
-        }
+    val aggregated = fileCommitterStats
+      .reduceByKey(sumStats)
+      .map {
+        case ((file, committer), stats) => (file, (committer, stats))
+      }
 
-      aggregated.aggregateByKey(List.empty[(String, Stats)])(
+    aggregated.aggregateByKey(List.empty[(String, Stats)])(
       (acc, value) => value :: acc,
       (acc1, acc2) => acc1 ++ acc2)
   }
 
 
   /**
-    *
-    * Hashing function that computes the md5 hash from a String, which in terms returns a Long to act as a hashing
-    * function for repository name and username.
-    *
-    * @param s String to be hashed, consecutively mapped to a Long.
-    * @return Long representing the MSB from the inputted String.
-    */
+   *
+   * Hashing function that computes the md5 hash from a String, which in terms returns a Long to act as a hashing
+   * function for repository name and username.
+   *
+   * @param s String to be hashed, consecutively mapped to a Long.
+   * @return Long representing the MSB from the inputted String.
+   */
   def md5HashString(s: String): Long = {
     val md = MessageDigest.getInstance("MD5")
     val digest = md.digest(s.getBytes)
@@ -338,57 +338,43 @@ object RDDAssignment {
    * @param commits RDD containing commit data.
    * @return Graph representation of the commits as described above.
    */
-  def assignment_11(commits: RDD[Commit]): Graph[(String, String), String] = {
-    val vertex_committers=commits.map(u => u.commit.committer.name).distinct()
-      .map(r =>(md5HashString(r).toLong,("developer",r)))
-    val vertex_repos = commits.map(r => r.url.split("/")(5)).distinct()
-      .map(l => (md5HashString(l).toLong,("repository",l)))
-    val vertices=vertex_committers union vertex_repos
-    val edges = commits.flatMap { u=>val committer_id=md5HashString(u.commit.committer.name).toLong
-      val repo_id = md5HashString(u.url.split("/")(5)).toLong
-      Seq(Edge(committer_id,repo_id,"commited_to"),
-      Edge(repo_id, committer_id,"commited_by"))
+    def assignment_11(commits: RDD[Commit]): Graph[(String, String), String] = {
+      val committerRepoPairs = commits
+        .flatMap { c =>
+          val committerName = Option(c.commit)
+            .flatMap(cm => Option(cm.committer))
+            .flatMap(co => Option(co.name))
+            .map(_.trim)
+            .filter(_.nonEmpty)
+
+          val repoName = Option(c.url)
+            .map(_.split("/"))
+            .filter(_.length > 5)
+            .map(_(5))
+            .map(_.trim)
+            .filter(_.nonEmpty)
+
+          committerName.flatMap(n => repoName.map(r => (n, r)))
+        }
+        .distinct()
+
+      val developerVertices = committerRepoPairs
+        .map(_._1)
+        .distinct()
+        .map(name => (md5HashString(name), ("developer", name))) // only store type info
+
+      val repoVertices = committerRepoPairs
+        .map(_._2)
+        .distinct()
+        .map(repo => (md5HashString(repo), ("repository", repo)))
+
+      val vertices = developerVertices.union(repoVertices)
+
+      val edges = committerRepoPairs.map { case (dev, repo) =>
+        Edge(md5HashString(dev), md5HashString(repo), "committed_to")
+      }
+
+      Graph(vertices, edges)
     }
-    Graph(vertices,edges)
-//    val validCommits = commits.flatMap { c =>
-//      Option(c.commit.committer).map(committer => (committer.name, c.url))
-//    }
-//
-//    val repoNames = validCommits
-//      .map { case (_, url) => url.split("/").lift(5).getOrElse("").toLowerCase }
-//      .filter(_.nonEmpty)
-//      .distinct()
-//
-//    val committerNames = validCommits
-//      .map { case (name, _) => name.toLowerCase }
-//      .filter(_.nonEmpty)
-//      .distinct()
-//
-//    val vertex_committers = committerNames.map(name =>
-//      (md5HashString(name), ("developer", name))
-//    )
-//    val vertex_repos = repoNames.map(r =>
-//      (md5HashString(r), ("repository", r))
-//    )
-//    val vertices = vertex_committers union vertex_repos
-//
-//    val edges = validCommits
-//      .map { case (committer, url) =>
-//        val repo = url.split("/").lift(5).getOrElse("").toLowerCase
-//        (committer.toLowerCase, repo)
-//      }
-//      .filter { case (_, repo) => repo.nonEmpty }
-//      .distinct()
-//      .flatMap { case (committer, repo) =>
-//        val committer_id = md5HashString(committer)
-//        val repo_id = md5HashString(repo)
-//        Seq(
-//          Edge(committer_id, repo_id, "committed_to"),
-//          Edge(repo_id, committer_id, "committed_by")
-//        )
-//      }
-//
-//    Graph(vertices,edges)
-  }
 }
 
