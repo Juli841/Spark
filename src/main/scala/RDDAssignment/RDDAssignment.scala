@@ -281,7 +281,16 @@ object RDDAssignment {
    * @param repository String name of repository
    * @return RDD containing tuples representing a file name and a list of tuples of committer names and Stats object.
    */
-  def assignment_10(commits: RDD[Commit], repository: String): RDD[(String, List[(String, Stats)])] = ???
+  def assignment_10(commits: RDD[Commit], repository: String): RDD[(String, List[(String, Stats)])] = {
+    commits
+      .filter(c => repository.contains(c.url.split("/")(5)))
+      .flatMap(c => c.files.map(f => (f,c.commit.committer.name)))
+      .map{ case (f,comName) => (f.filename.get, (comName,Stats(total = f.changes, additions = f.additions, deletions = f.deletions)))}
+      .aggregateByKey(List.empty[(String, Stats)])(
+        (acc, v) => v :: acc,
+        (acc1, acc2) => acc1 ++ acc2
+      )
+  }
 
 
   /**
