@@ -52,11 +52,8 @@ object RDDAssignment {
    * @return RDD containing tuples indicating the email domain (extension) and number of occurrences.
    */
   def assignment_2(commits: RDD[Commit]): RDD[(String, Long)] = {
-    commits
-      .map(c => c.commit.author.email)
-      .map(email => (email.split("@").last, 1L))
-      .reduceByKey(_ + _)
-      //.sortBy(x => x._2, ascending = false)
+    commits.map(u=> (u.commit.author.email.split("@").last,1L))
+      .reduceByKey(_+_)
   }
 
 
@@ -319,6 +316,18 @@ object RDDAssignment {
    * @param commits RDD containing commit data.
    * @return Graph representation of the commits as described above.
    */
-  def assignment_11(commits: RDD[Commit]): Graph[(String, String), String] = ???
+  def assignment_11(commits: RDD[Commit]): Graph[(String, String), String] = {
+    val vertex_committers=commits.map(u => u.commit.committer.name).distinct()
+      .map(r =>(md5HashString(r).toLong,("developer",r)))
+    val vertex_repos = commits.map(r => r.url.split("/")(5)).distinct()
+      .map(l => (md5HashString(l).toLong,("repository",l)))
+    val vertices=vertex_committers union vertex_repos
+    val edges = commits.map{ u=>
+      val comitter_id=md5HashString(u.commit.committer.name).toLong
+      val repo_id = md5HashString(u.url.split("/")(5)).toLong
+      Edge(comitter_id,repo_id,"commits")
+    }
+    Graph(vertices,edges)
+  }
 }
 
